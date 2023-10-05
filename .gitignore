@@ -1,9 +1,97 @@
-# Dependencies
-.psci_modules
-.spago
-bower_components
-node_modules
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local camera = game.Workspace.CurrentCamera
 
-# Generated files
-.psci
-output
+local function getClosestPlayerToCursor(cursorPosition)
+    local closestPlayer = nil
+    local closestDistance = math.huge
+
+    for _, player in pairs(Players:GetPlayers()) do
+        local character = player.Character
+        if character and character:FindFirstChild("HumanoidRootPart") then
+            local characterPosition = character:FindFirstChild("HumanoidRootPart").Position
+            local distance = (characterPosition - cursorPosition).Magnitude
+
+            if distance < closestDistance then
+                closestPlayer = player
+                closestDistance = distance
+            end
+        end
+    end
+
+    return closestPlayer
+end
+
+local function lockOntoPlayer()
+    local mouse = Players.LocalPlayer:GetMouse()
+    local cursorPosition = mouse.Hit.p
+
+    local closestPlayer = getClosestPlayerToCursor(cursorPosition)
+
+    if closestPlayer then
+        local character = closestPlayer.Character
+        local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+
+        if humanoidRootPart then
+            local lookAt = CFrame.new(camera.CFrame.Position, humanoidRootPart.Position)
+            camera.CFrame = lookAt
+        end
+    end
+end
+
+UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+    if not gameProcessedEvent then
+        if input.KeyCode == Enum.KeyCode.E then
+            lockOntoPlayer()
+        end
+    end
+end)
+
+local Players = game:GetService("Players")
+
+local function highlightPlayers()
+    for _, player in pairs(Players:GetPlayers()) do
+        local character = player.Character
+        if character then
+            local selectionBox = Instance.new("SelectionBox")
+            selectionBox.Name = "PlayerHighlight"
+            selectionBox.Adornee = character:FindFirstChild("HumanoidRootPart")
+            selectionBox.Color3 = Color3.new(1, 0, 0) -- Red color (you can change this)
+            selectionBox.LineThickness = 0.05
+            selectionBox.Transparency = 0.5
+            selectionBox.Parent = character
+        end
+    end
+end
+
+local function removeHighlights()
+    for _, player in pairs(Players:GetPlayers()) do
+        local character = player.Character
+        if character then
+            local selectionBox = character:FindFirstChild("PlayerHighlight")
+            if selectionBox then
+                selectionBox:Destroy()
+            end
+        end
+    end
+end
+
+local isHighlighting = false
+
+local function toggleHighlight()
+    isHighlighting = not isHighlighting
+
+    if isHighlighting then
+        highlightPlayers()
+    else
+        removeHighlights()
+    end
+end
+
+game:GetService("UserInputService").InputBegan:Connect(function(input, gameProcessedEvent)
+    if not gameProcessedEvent then
+        if input.KeyCode == Enum.KeyCode.Q then
+            toggleHighlight()
+        end
+    end
+end)
